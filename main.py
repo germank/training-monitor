@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from numpy import arange, sin, pi
 import matplotlib
 import threading
