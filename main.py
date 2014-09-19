@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from numpy import arange, sin, pi
+from numpy import arange, sin, pi, append
 import matplotlib
 import threading
 import cherrypy 
@@ -22,27 +22,39 @@ class LinePlotPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         #data container
-        self.data = defaultdict(list)
+        #self.data = defaultdict(list)
         #plotted lines
         self.line = {}
         #gui stuff
         self.figure = Figure((6,3))
         self.axes = self.figure.add_subplot(111)
+        self.axes.set_yscale('log')
         self.canvas = FigureCanvas(self, -1, self.figure)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
         self.SetSizerAndFit(self.sizer)
         self.Fit()
 
-    def add_point(self, x, y, z=1):
+    def add_point(self, y, x=None, z=1):
+        y = float(y)
+        print(y)
         #take note of the data
-        self.data[z].append((x,y))
+        #self.data[z].append((x,y))
         #plot it
+        if not x:
+            print z in self.line
+            if z in self.line:
+                x = self.line[z].get_xdata()[-1] + 1
+            else:
+                x = 1
+            print(x)
+            
         try:
-            self.line[z].set_data(*zip(*self.data[z]))
+            self.line[z].set_xdata(append(self.line[z].get_xdata(), x))
+            self.line[z].set_ydata(append(self.line[z].get_ydata(), y))
         except:
-            xs,ys = zip(*self.data[z])
-            self.line[z], = self.axes.plot(xs,ys)
+            #xs,ys = zip(*self.data[z])
+            self.line[z], = self.axes.plot([x],[y])
         #refresh view
         self.axes.relim()
         self.axes.autoscale_view()
