@@ -2,6 +2,6 @@ cherrypy:
     server.socket_port: 3333
 elements:
     test1: 
-        type: LinePlotPanel
+        type: LinePlot
     test2: 
-        type: LinePlotPanel
+        type: LinePlot
