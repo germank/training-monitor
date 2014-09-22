@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from numpy import arange, sin, pi, append
 import matplotlib
+matplotlib.use('WXAgg')
 import threading
 import cherrypy 
 import logging
@@ -9,107 +10,12 @@ import argparse
 from collections import defaultdict
 from wx.lib.pubsub import Publisher as pub
 
+#Import pluggable visualizers
+from visualizers.LinePlot import *
 
-matplotlib.use('WXAgg')
 
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-from matplotlib.figure import Figure
 
 import wx
-
-class ActionHandler(object):
-    def save(self, output_dir):
-        self.panel.save(output_dir)
-        
-class LinePlotPanel(wx.Panel):
-    '''
-    A Panel with a line plot in it
-    '''
-    def __init__(self, parent, figure, **kwargs):
-        wx.Panel.__init__(self, parent)
-        self.figure = figure 
-        self.figure.subscribe(self.on_figure_changed, 'FIGURE_CHANGED')
-        self.canvas = FigureCanvas(self, -1, self.figure.get_figure())
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
-        self.SetSizerAndFit(self.sizer)
-        self.Fit()
-
-    def add_point(self, y, x=None, z=1):
-        self.figure.add_point(y, x, z)
-            
-    def draw(self):
-        self.figure.draw()
-        self.canvas.draw()
-    
-    def save(self, output_dir):
-        self.figure.save(output_dir)
-        
-    def on_figure_changed(self, message):
-        if message.data == self.figure:
-            self.draw()
-
-
-
-class LinePlotFigure(wx.Panel):
-    '''
-    A Panel with a line plot in it
-    '''
-    def __init__(self, **kwargs):
-        #data container
-        #self.data = defaultdict(list)
-        #plotted lines
-        self.line = {}
-        #gui stuff
-        self.figure = Figure((6,3))
-        self.axes = self.figure.add_subplot(111)
-        if 'scale' in kwargs:
-            self.axes.set_yscale(kwargs['scale'])
-    
-    def accept_data(self, **kwargs):
-        '''
-        Handles a request from the HTTP server
-        @keyword x: x-value for the point
-        @keyword y: t-value for the point
-        @keyword z: line index in the plot 
-        '''
-        #don't really know if this is necessary anymore
-        wx.CallAfter(self.add_point, **kwargs)
-
-    
-    def get_figure(self):
-        return self.figure
-
-    def add_point(self, y, x=None, z=1):
-        y = float(y)
-        print(y)
-        #take note of the data
-        #self.data[z].append((x,y))
-        #plot it
-        if not x:
-            print z in self.line
-            if z in self.line:
-                x = self.line[z].get_xdata()[-1] + 1
-            else:
-                x = 1
-            print(x)
-            
-        try:
-            self.line[z].set_xdata(append(self.line[z].get_xdata(), x))
-            self.line[z].set_ydata(append(self.line[z].get_ydata(), y))
-        except:
-            #xs,ys = zip(*self.data[z])
-            self.line[z], = self.axes.plot([x],[y])
-        
-        pub.sendMessage('FIGURE_CHANGED', self)
-    
-    def draw(self):
-        self.axes.relim()
-        self.axes.autoscale_view()
-        
-    
-    def save(self, output_dir):
-        pass
 
 class DataListener(object):
     def __init__(self):
@@ -117,14 +23,14 @@ class DataListener(object):
     
     @cherrypy.expose
     def index(self, **kwargs):
-        if 'data_name' not in kwargs:
+        if 'monitor_name' not in kwargs:
             raise Exception('Data name not found')
-        data_name = kwargs.pop('data_name')
-        pub.sendMessage('DATA', (data_name, kwargs))
+        monitor_name = kwargs.pop('monitor_name')
+        pub.sendMessage('DATA', (monitor_name, kwargs))
             
     def _cp_dispatch(self, vpath):
         assert(len(vpath) == 1)
-        cherrypy.request.params['data_name'] = vpath.pop()
+        cherrypy.request.params['monitor_name'] = vpath.pop()
         return self
 
         
@@ -137,22 +43,24 @@ def start_listening(servercfg):
     return dl
 
 
-def create_panel(parent, cfg):
-    assert 'type' in cfg, "type keyword missing "\
-        "(use to specify the type of panel)"
-    #if not offline:
-    f = globals()[cfg['type'] + 'Figure'](**(cfg['args'] if 'args' in cfg else {}))
-    p = globals()[cfg['type'] + 'Panel'](parent,f, **(cfg['args'] if 'args' in cfg else {}))
-    parent.sizer.Add(p, 1, wx.LEFT | wx.TOP | wx.GROW| wx.EXPAND)
-    #else:
-    #   
-    h = globals()[cfg['type'] + 'Handler'](p)
-    return h, p
+#def create_panel(parent, cfg):
+#    assert 'type' in cfg, "type keyword missing "\
+#        "(use to specify the type of panel)"
+#    #if not offline:
+#    f = globals()[cfg['type'] + 'Figure'](**(cfg['args'] if 'args' in cfg else {}))
+#    
+#    #else:
+#    #   
+#    #h = globals()[cfg['type'] + 'Handler'](p)
+#    return p
 
 
 class DataMonitor(object):
     def __init__(self, cfg):
         self.figure = globals()[cfg['type'] + 'Figure'](**(cfg['args'] if 'args' in cfg else {}))
+    
+    def get_figure(self):
+        return self.figure
     
     def accept_data(self, **kwargs):
         self.figure.accept_data(**kwargs) 
@@ -175,11 +83,15 @@ class SessionManager():
         self.session_counter = self.session_counter + 1
         session_id = self.session_counter
         self.sessions[session_id] = {} 
-        for data_name, data_cfg in self.cfg.iteritems():
-                self.sessions[session_id][data_name] = DataMonitor(data_cfg) 
+        for monitor_name, data_cfg in self.cfg['elements'].iteritems():
+                self.sessions[session_id][monitor_name] = DataMonitor(data_cfg) 
         
-        pub.sendMessage("SESSION NEW", session_id)
+        pub.sendMessage("SESSION NEW", (session_id,
+                                        self.get_session_monitors(session_id)))
         return session_id
+    
+    def get_session_monitors(self, session_id):
+        return self.sessions[session_id]
     
     def current_session(self):
         return self.sessions[self.current_session_id]
@@ -196,20 +108,29 @@ class SessionManager():
 
 class GUISessionController(object):
     def __init__(self, parent, cfg):
-        self.parent  = parent
-        self.session_listbook = wx.Listbook(self.parent)
-        self.cfg = cfg
-        self.session_manager = SessionManager(cfg)
         pub.subscribe(self.on_session_new, "SESSION NEW")
         pub.subscribe(self.on_session_switch, "SESSION SWITCH")
+        self.parent  = parent
+        self.session_listbook = wx.Listbook(self.parent)
+        self.parent.sizer.Add(self.session_listbook, 1, wx.LEFT | wx.TOP | wx.GROW| wx.EXPAND)
+        self.cfg = cfg
+        self.session_manager = SessionManager(cfg)
     
     def on_session_new(self, message):
-        session_id = message.data
+        session_id,session_monitors = message.data  
         panel = wx.Panel(self.parent)
         panel.sizer = wx.BoxSizer(wx.VERTICAL)
+        panel.SetBackgroundColour((0,0,0))
         self.session_listbook.AddPage(panel, str(session_id))
-        for data_name, action_cfg in self.cfg.iteritems():
-            panel.sizer.add(create_panel(self.session_listbook, action_cfg), 1, wx.LEFT | wx.TOP | wx.GROW| wx.EXPAND) 
+        #for monitor_name, action_cfg in self.cfg.iteritems():
+        for monitor_name, monitor in session_monitors.iteritems():
+            print monitor_name
+            monitor_cfg = self.cfg['elements'][monitor_name]
+            p = globals()[monitor_cfg['type'] + 'Panel'](panel, 
+                                                 monitor.get_figure(),
+                                                  **(monitor_cfg.get('args',{})))
+            panel.sizer.Add(p, 1, wx.LEFT | wx.TOP | wx.GROW| wx.EXPAND)
+        panel.SetSizer(panel.sizer)
         return session_id
     
     def on_session_switch(self, message):
@@ -217,20 +138,24 @@ class GUISessionController(object):
         pass
     
     def on_data_arrived(self, message):
-        
+        pass
         
 class GUIController(object):
     def __init__(self, app, cfg):
         fr = wx.Frame(None, title='Training Monitor')
         panel = wx.Panel(fr)
         panel.sizer = wx.BoxSizer(wx.VERTICAL)
-        
+        toolbar = fr.CreateToolBar()
+        new_session_btn = toolbar.AddLabelTool(wx.ID_ANY, 'New Session')
+        toolbar.Realize()
+
+        #self.Bind(wx.EVT_TOOL, self.OnQuit, qtool)
         self.session_controller = GUISessionController(panel, cfg)
         
-        handlers = {}
-        for data_name, cfg in config['elements'].iteritems():
-            h, p = create_panel(panel, cfg)
-            handlers[data_name] = h
+        #handlers = {}
+        #for monitor_name, cfg in config['elements'].iteritems():
+        #    h, p = create_panel(panel, cfg)
+        #    handlers[monitor_name] = h
         panel.SetSizerAndFit(panel.sizer)
         fr.Show()
         fr.Maximize()
@@ -258,8 +183,7 @@ if __name__ == "__main__":
         
     #Start the HTTP server
     thread=threading.Thread(target=start_listening, 
-                        args=(config['cherrypy'] if 'cherrypy' in config 
-                                                 else {}))
+                        args=(config.get('cherrypy',{}),))
     thread.setDaemon(True)
     thread.start()
     
