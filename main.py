@@ -28,6 +28,7 @@ class LinePlotPanel(wx.Panel):
     def __init__(self, parent, figure, **kwargs):
         wx.Panel.__init__(self, parent)
         self.figure = figure 
+        self.figure.subscribe(self.on_figure_changed, 'FIGURE_CHANGED')
         self.canvas = FigureCanvas(self, -1, self.figure.get_figure())
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
@@ -36,7 +37,6 @@ class LinePlotPanel(wx.Panel):
 
     def add_point(self, y, x=None, z=1):
         self.figure.add_point(y, x, z)
-        
             
     def draw(self):
         self.figure.draw()
@@ -44,23 +44,12 @@ class LinePlotPanel(wx.Panel):
     
     def save(self, output_dir):
         self.figure.save(output_dir)
+        
+    def on_figure_changed(self, message):
+        if message.data == self.figure:
+            self.draw()
 
 
-        
-class LinePlotHandler(ActionHandler):
-    def __init__(self, panel):
-        self.panel = panel
-        
-    def handle_request(self, **kwargs):
-        '''
-        Handles a request from the HTTP server
-        @keyword x: x-value for the point
-        @keyword y: t-value for the point
-        @keyword z: line index in the plot 
-        '''
-        wx.CallAfter(self.panel.add_point, **kwargs)
-    
-        
 
 class LinePlotFigure(wx.Panel):
     '''
@@ -76,6 +65,17 @@ class LinePlotFigure(wx.Panel):
         self.axes = self.figure.add_subplot(111)
         if 'scale' in kwargs:
             self.axes.set_yscale(kwargs['scale'])
+    
+    def accept_data(self, **kwargs):
+        '''
+        Handles a request from the HTTP server
+        @keyword x: x-value for the point
+        @keyword y: t-value for the point
+        @keyword z: line index in the plot 
+        '''
+        #don't really know if this is necessary anymore
+        wx.CallAfter(self.add_point, **kwargs)
+
     
     def get_figure(self):
         return self.figure
@@ -100,6 +100,8 @@ class LinePlotFigure(wx.Panel):
         except:
             #xs,ys = zip(*self.data[z])
             self.line[z], = self.axes.plot([x],[y])
+        
+        pub.sendMessage('FIGURE_CHANGED', self)
     
     def draw(self):
         self.axes.relim()
@@ -151,7 +153,9 @@ def create_panel(parent, cfg):
 class DataMonitor(object):
     def __init__(self, cfg):
         self.figure = globals()[cfg['type'] + 'Figure'](**(cfg['args'] if 'args' in cfg else {}))
-        self.handler = globals()[cfg['type'] + 'Handler'](self.figure) 
+    
+    def accept_data(self, **kwargs):
+        self.figure.accept_data(**kwargs) 
 
 class SessionListbook(wx.Listbook):
     def __init__(self, parent):
@@ -177,14 +181,17 @@ class SessionManager():
         pub.sendMessage("SESSION NEW", session_id)
         return session_id
     
+    def current_session(self):
+        return self.sessions[self.current_session_id]
+    
     def switch_session(self, session_id):
-        self.current_session = session_id
+        self.current_session_id = session_id
         pub.sendMessage("SESSION SWICH", session_id)
         return session_id
     
     def on_data_arrived(self, message):
         action_name, kwargs = message.data
-        
+        self.current_session()[action_name].accept_data(**kwargs)
         
 
 class GUISessionController(object):
@@ -210,7 +217,7 @@ class GUISessionController(object):
         pass
     
     def on_data_arrived(self, message):
-        tid, 
+        
         
 class GUIController(object):
     def __init__(self, app, cfg):
