@@ -2,6 +2,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 import wx
 from wx.lib.pubsub import Publisher as pub
+from numpy.lib.function_base import append
 
 class LinePlotPanel(wx.Panel):
     '''
@@ -79,8 +80,7 @@ class LinePlotFigure(wx.Panel):
         try:
             self.line[z].set_xdata(append(self.line[z].get_xdata(), x))
             self.line[z].set_ydata(append(self.line[z].get_ydata(), y))
-        except:
-            #xs,ys = zip(*self.data[z])
+        except KeyError:
             self.line[z], = self.axes.plot([x],[y])
         
         pub.sendMessage('FIGURE_CHANGED', self)
