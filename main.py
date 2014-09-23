@@ -67,7 +67,9 @@ class ConsoleController(object):
     def __init__(self, app, cfg):
         self.cfg = cfg
         self.session_manager = SessionManager(cfg)
-    
+        
+    def save(self, outdir):
+        self.session_manager.save(outdir)
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser('Training Monitor')
@@ -82,8 +84,9 @@ if __name__ == "__main__":
      
     #Create the GUI
     app = wx.PySimpleApp()
+
     if args.offline:
-        controller = ConsoleController(app)
+        controller = ConsoleController(app, config)
     else:
         controller = GUIController(app, config)
         

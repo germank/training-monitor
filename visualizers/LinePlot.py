@@ -24,9 +24,6 @@ class LinePlotPanel(wx.Panel):
     def draw(self):
         self.figure.draw()
         self.canvas.draw()
-    
-    def save(self, output_dir):
-        self.figure.save(output_dir)
         
     def on_figure_changed(self, message):
         if message.data == self.figure:
@@ -90,5 +87,5 @@ class LinePlotFigure(wx.Panel):
         self.axes.autoscale_view()
         
     
-    def save(self, output_dir):
-        pass
+    def save(self, output_file):
+        self.figure.savefig(output_file)
