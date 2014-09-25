@@ -42,6 +42,14 @@ class GUISessionController(object):
         panel.SetSizer(panel.sizer)
         return session_id
     
+
+class MainApp(wx.PySimpleApp ):
+    def __init__(self):
+        wx.PySimpleApp.__init__(self)
+        
+    def onExit(self, event):
+        print "Quitting"
+
 class GUIController(object):
     def __init__(self, app, cfg):
         fr = wx.Frame(None, title='Training Monitor')
@@ -73,6 +81,9 @@ class ConsoleController(object):
     def save(self, outdir):
         self.session_manager.save(outdir)
 
+
+
+    
 if __name__ == "__main__":
     ap = argparse.ArgumentParser('Training Monitor')
     ap.add_argument('config_yml', help='yml file with the monitor configuration')
@@ -83,14 +94,25 @@ if __name__ == "__main__":
     
     config = yaml.load(file(args.config_yml))
     
-     
+    #def sigint_handler(signum, frame):
+    #    print "Handler called"
+    #    app.ExitMainLoop()
+    #import signal
+    #signal.signal(signal.SIGINT, sigint_handler) 
     #Create the GUI
-    app = wx.PySimpleApp()
-
-    if args.offline:
-        controller = ConsoleController(app, config)
-    else:
-        controller = GUIController(app, config)
+    #app = wx.PySimpleApp(clearSigInt=True)
+    app = MainApp()
+    
+    import time
+    print '...'
+    #time.sleep(5)
+    f = wx.Frame(None)
+    f.Show()
+    app.MainLoop()
+    #if args.offline:
+    #    controller = ConsoleController(app, config)
+    #else:
+    #    controller = GUIController(app, config)
         
     #Start the HTTP server
     #thread=threading.Thread(target=start_listening, 
@@ -98,15 +120,15 @@ if __name__ == "__main__":
     #thread.setDaemon(True)
     #thread.start()
     
-    try:
-        print "Entering main loop"
-        app.MainLoop()
-        print "Main loop done"
+    #try:
+    #    print "Entering main loop"
+    #    app.MainLoop()
+    #    print "Main loop done"
         #thread.join()
-    except KeyboardInterrupt:
-        print "Saving graphics to {0}...".format(args.output_dir),
-        controller.save(args.output_dir)
-        print "Done"
+    #except KeyboardInterrupt:
+     #   print "Saving graphics to {0}...".format(args.output_dir),
+     #   controller.save(args.output_dir)
+     #   print "Done"
     
     
     
