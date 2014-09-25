@@ -65,6 +65,8 @@ class GUIController(object):
 
 class ConsoleController(object):
     def __init__(self, app, cfg):
+        self.frame = wx.Frame(None)
+        self.frame.Hide()
         self.cfg = cfg
         self.session_manager = SessionManager(cfg)
         
@@ -91,15 +93,20 @@ if __name__ == "__main__":
         controller = GUIController(app, config)
         
     #Start the HTTP server
-    thread=threading.Thread(target=start_listening, 
-                        args=(config.get('cherrypy',{}),))
-    thread.setDaemon(True)
-    thread.start()
+    #thread=threading.Thread(target=start_listening, 
+    #                    args=(config.get('cherrypy',{}),))
+    #thread.setDaemon(True)
+    #thread.start()
     
     try:
+        print "Entering main loop"
         app.MainLoop()
+        print "Main loop done"
+        #thread.join()
     except KeyboardInterrupt:
+        print "Saving graphics to {0}...".format(args.output_dir),
         controller.save(args.output_dir)
+        print "Done"
     
     
     
