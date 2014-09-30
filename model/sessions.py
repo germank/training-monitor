@@ -1,17 +1,14 @@
 from plugin_mgr import FigureFactory
-from wx.lib.pubsub import Publisher as pub
-
-import os, errno
-
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc: # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else: raise
+#from wx.lib.pubsub import Publisher as pub
+from signalslot.signal import Signal
+import os
+from utils import mkdir_p
 
 class DataMonitor(object):
+    '''
+    Contains and represents the data that it receives
+    through accept_data
+    '''
     def __init__(self, cfg):
         figure_factory = FigureFactory()
         self.figure = figure_factory.build(cfg)
@@ -28,12 +25,23 @@ class DataMonitor(object):
 
 
 class SessionManager():
-    def __init__(self, cfg):
+    ''' A Session consist of a collection of DataMonitors
+    The SessionManager connects to a DataListener (dl) and sends
+    all data that it receives to the corresponding DataMonitor
+    in the active Session. 
+    '''
+    def __init__(self, cfg, dl):
+        #signals
+        self.session_new = Signal(['session_id', 'session_monitors'])
+        self.session_switch = Signal(['session_id'])
+        
         self.cfg = cfg
         self.session_counter = 0
         self.sessions = {}
+        dl.data_updated.connect(self.on_data_arrived)
+        
+    def switch_new_session(self):
         self.switch_session(self.new_session())
-        pub.subscribe(self.on_data_arrived, 'DATA')
         
         
     def new_session(self):
@@ -43,8 +51,11 @@ class SessionManager():
         for monitor_name, data_cfg in self.cfg['elements'].iteritems():
                 self.sessions[session_id][monitor_name] = DataMonitor(data_cfg) 
         
-        pub.sendMessage("SESSION NEW", (session_id,
-                                        self.get_session_monitors(session_id)))
+        #pub.sendMessage("SESSION NEW", (session_id, 
+        #                                self.get_session_monitors(session_id)))
+        self.session_new.emit(session_id=session_id,
+                              session_monitors=self.get_session_monitors(session_id))
+        
         return session_id
     
     def get_session_monitors(self, session_id):
@@ -55,12 +66,12 @@ class SessionManager():
     
     def switch_session(self, session_id):
         self.current_session_id = session_id
-        pub.sendMessage("SESSION SWICH", session_id)
+        #pub.sendMessage("SESSION SWICH", session_id)
+        self.session_switch.emit(session_id=session_id)
         return session_id
     
-    def on_data_arrived(self, message):
-        action_name, kwargs = message.data
-        self.current_session()[action_name].accept_data(**kwargs)
+    def on_data_arrived(self, monitor_name, args, **kwargs):
+        self.current_session()[monitor_name].accept_data(**args)
         
     def save(self, out_dir):
         for session_id, monitors in self.sessions.iteritems():

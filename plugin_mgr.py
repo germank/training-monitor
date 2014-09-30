@@ -6,7 +6,10 @@ def load_plugins(package_name):
     for module_loader, module_name, ispkg in pkgutil.iter_modules([package_name]):
         if module_name not in sys.modules:
             # Import module
-            tmp = __import__(package_name+"."+module_name, globals(), locals(), [module_name+'Panel',module_name+'Figure'])
+            tmp = __import__(package_name+"."+module_name, globals(), locals(), [module_name+'Panel',
+                                                                                 module_name+'MemoryPanel',
+                                                                                 module_name+'Figure'])
+            globals()[module_name+'MemoryPanel'] = tmp.__dict__[module_name+'MemoryPanel']
             globals()[module_name+'Panel'] = tmp.__dict__[module_name+'Panel']
             globals()[module_name+'Figure'] = tmp.__dict__[module_name+'Figure']
 
@@ -20,3 +23,8 @@ class FigurePanelFactory(object):
                                         figure,
                                         **(cfg.get('args',{})))
         
+
+class FigureMemoryPanelFactory(object):
+    def build(self, figure, cfg):
+        return globals()[cfg['type'] + 'MemoryPanel'](figure,
+                                        **(cfg.get('args',{})))
