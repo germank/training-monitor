@@ -3,5 +3,9 @@ cherrypy:
 elements:
     test1: 
         type: LinePlot
+        label: Test Panel 1
     test2: 
         type: LinePlot
+        label: Test Panel 2
+        args:
+            scale: log

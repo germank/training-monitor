@@ -31,13 +31,17 @@ class GUISessionController(object):
     def on_session_new(self, session_id, session_monitors, **kwargs):
         panel = wx.Panel(self.parent)
         panel.sizer = wx.BoxSizer(wx.VERTICAL)
-        panel.SetBackgroundColour((0,0,0))
+        #panel.SetBackgroundColour((0,0,0))
         self.session_listbook.AddPage(panel, str(session_id))
         #for monitor_name, action_cfg in self.cfg.iteritems():
         for monitor_name, monitor in session_monitors.iteritems():
             monitor_cfg = self.cfg['elements'][monitor_name]
             panel_factory = FigurePanelFactory()
+            #Create the Panel 
             p = panel_factory.build(panel, monitor.get_figure(), monitor_cfg)
+            #Define the panel label
+            s = wx.StaticText(panel,-1,self.cfg['elements'][monitor_name].get('label', monitor_name))
+            panel.sizer.Add(s, 0)
             panel.sizer.Add(p, 1, wx.LEFT | wx.TOP | wx.GROW| wx.EXPAND)
         panel.SetSizer(panel.sizer)
     
@@ -74,6 +78,9 @@ class ConsoleController(object):
         self.session_manager.session_new.connect(self.on_session_new)
         self.session_manager.switch_new_session()
         
+    def start(self):
+        server_block()
+        
     def save(self, outdir):
         self.session_manager.save(outdir)
         
@@ -107,7 +114,7 @@ if __name__ == "__main__":
     try:
         if args.no_gui:
             controller = ConsoleController(config, dl)
-            server_block()
+            controller.start()
         else:
             app = wx.PySimpleApp()
             controller = GUIController(app, config, dl)
