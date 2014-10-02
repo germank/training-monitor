@@ -3,11 +3,12 @@ from plugin_mgr import FigureFactory
 from signalslot.signal import Signal
 import os
 from utils import mkdir_p
+import datetime
 
-class DataMonitor(object):
+class DataThreadMonitor(object):
     '''
-    Contains and represents the data that it receives
-    through accept_data
+    Contains and represents the a visualizing block for
+    a data thread
     '''
     def __init__(self, cfg):
         figure_factory = FigureFactory()
@@ -22,12 +23,15 @@ class DataMonitor(object):
         
     def save(self, outfile):
         self.figure.save(outfile)
+        
+    def ghost_clone(self, other):
+        self.figure.ghost_clone(other.figure)
 
 
 class SessionManager():
     ''' A Session consist of a collection of DataMonitors
     The SessionManager connects to a DataListener (dl) and sends
-    all data that it receives to the corresponding DataMonitor
+    all data that it receives to the corresponding DataThreadMonitor
     in the active Session. 
     '''
     def __init__(self, cfg, dl):
@@ -38,6 +42,7 @@ class SessionManager():
         self.cfg = cfg
         self.session_counter = 0
         self.sessions = {}
+        self.session_id_format = "{uniq_id} - {date} - {time}"
         dl.data_updated.connect(self.on_data_arrived)
         
     def switch_new_session(self):
@@ -46,10 +51,12 @@ class SessionManager():
         
     def new_session(self):
         self.session_counter = self.session_counter + 1
-        session_id = self.session_counter
+        session_id = self.session_id_format.format(uniq_id=self.session_counter,
+                                                   date=datetime.datetime.now().strftime("%Y-%m-%d"),
+                                                   time=datetime.datetime.now().strftime("%H:%M"))
         self.sessions[session_id] = {} 
         for monitor_name, data_cfg in self.cfg['elements'].iteritems():
-                self.sessions[session_id][monitor_name] = DataMonitor(data_cfg) 
+                self.sessions[session_id][monitor_name] = DataThreadMonitor(data_cfg) 
         
         #pub.sendMessage("SESSION NEW", (session_id, 
         #                                self.get_session_monitors(session_id)))
@@ -69,6 +76,11 @@ class SessionManager():
         #pub.sendMessage("SESSION SWICH", session_id)
         self.session_switch.emit(session_id=session_id)
         return session_id
+    
+    def clone_session(self, session_id):
+        other_session = self.get_session_monitors(session_id)
+        for monitor_name, monitor in self.current_session().iteritems():
+            monitor.ghost_clone(other_session[monitor_name])
     
     def on_data_arrived(self, monitor_name, args, **kwargs):
         self.current_session()[monitor_name].accept_data(**args)

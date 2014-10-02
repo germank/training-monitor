@@ -61,3 +61,7 @@ class LinePlotFigure(BaseFigure):
     
     def save(self, output_file):
         self.figure.savefig(output_file)
+
+    def ghost_clone(self, other):
+        for line in other.line.itervalues():
+            self.axes.plot(line.get_xdata(), line.get_ydata(), alpha=0.5)

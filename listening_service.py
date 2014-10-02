@@ -27,22 +27,40 @@ class DataListener(object):
         
         #return "Hello world!"
 
-def start_listening(servercfg, dl):
-    cherrypy.config.update(servercfg)
-    cherrypy.tree.mount(dl, "", None)
+class ListeningService(object):
+    def __init__(self, servercfg, dl):
+        self.server_started = Signal()
+        self.server_stopped = Signal()
+        
+        self.servercfg = servercfg
+        self.dl = dl
+        
+        cherrypy.engine.subscribe('start', self.on_start)
+        cherrypy.engine.subscribe('stop', self.on_stop)
     
-    if hasattr(cherrypy.engine, "signal_handler"):
-        cherrypy.engine.signal_handler.subscribe()
-    if hasattr(cherrypy.engine, "console_control_handler"):
-        cherrypy.engine.console_control_handler.subscribe()
+    def on_start(self):
+        self.server_started.emit()
     
-    #cherrypy.quickstart(dl)
-    cherrypy.engine.start()
+    def on_stop(self):
+        self.server_stopped.emit()
+        
+    def start(self):
+        cherrypy.config.update(self.servercfg)
+        cherrypy.tree.mount(self.dl, "", None)
+        
+        if hasattr(cherrypy.engine, "signal_handler"):
+            cherrypy.engine.signal_handler.subscribe()
+        if hasattr(cherrypy.engine, "console_control_handler"):
+            cherrypy.engine.console_control_handler.subscribe()
+        
+        cherrypy.engine.start()
     
 
-def stop_listening():
-    cherrypy.engine.stop()
-    cherrypy.engine.exit()
+    def stop(self):
+        cherrypy.engine.stop()
+        
+    def exit(self):
+        cherrypy.engine.exit()
 
-def server_block():
-    cherrypy.engine.block()
+    def block(self):
+        cherrypy.engine.block()

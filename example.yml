@@ -1,5 +1,6 @@
 cherrypy:
     server.socket_port: 3333
+    engine.autoreload_on: False
 elements:
     test1: 
         type: LinePlot
