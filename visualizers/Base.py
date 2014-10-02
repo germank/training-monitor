@@ -16,7 +16,7 @@ class BasePanel(wx.Panel):
         #pub.subscribe(self.on_figure_changed, 'FIGURE_CHANGED')
         self.canvas = FigureCanvasWxAgg(self, -1, self.figure.get_figure())
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
+        self.sizer.Add(self.canvas, 1, wx.ALL | wx.EXPAND)
         self.SetSizerAndFit(self.sizer)
         self.Fit()
         
@@ -62,7 +62,7 @@ class BaseFigure(object):
     '''
     def __init__(self, **kwargs):
         self.figure_updated = Signal()
-        self.figure = Figure()
+        self.figure = Figure((1,1))
         
     def accept_data(self, **kwargs):
         '''
