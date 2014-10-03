@@ -59,7 +59,7 @@ class GUIController(object):
         
     def on_btn_save_session(self, event):
         dir_dialog = wx.DirDialog(self.frame, "Select the output directory")
-        if dir_dialog.ShowModel() == wx.ID_OK:
+        if dir_dialog.ShowModal() == wx.ID_OK:
             self.save(dir_dialog.GetPath())
         event.Skip()
     
