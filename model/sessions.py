@@ -4,6 +4,7 @@ from signalslot.signal import Signal
 import os
 from utils import mkdir_p
 import datetime
+import logging
 
 class DataThreadMonitor(object):
     '''
@@ -83,7 +84,10 @@ class SessionManager():
             monitor.ghost_clone(other_session[monitor_name])
     
     def on_data_arrived(self, monitor_name, args, **kwargs):
-        self.current_session()[monitor_name].accept_data(**args)
+        try:
+            self.current_session()[monitor_name].accept_data(**args)
+        except KeyError:
+            logging.error('Monitor {0} not found'.format(monitor_name))
         
     def save(self, out_dir):
         for session_id, monitors in self.sessions.iteritems():

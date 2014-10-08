@@ -7,6 +7,8 @@ matplotlib.use('Agg')
 import yaml
 import argparse
 import wx
+import logging
+logging.basicConfig(level=logging.CRITICAL)
 
 #dynamically load visualizing classes from the visualizers package
 from plugin_mgr import load_plugins

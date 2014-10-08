@@ -62,7 +62,7 @@ class BaseFigure(object):
     '''
     def __init__(self, **kwargs):
         self.figure_updated = Signal()
-        self.figure = Figure((1,1))
+        self.figure = Figure((10,8))
         
     def accept_data(self, **kwargs):
         '''

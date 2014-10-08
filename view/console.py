@@ -1,4 +1,5 @@
 import cmd
+import logging
 from signalslot import Signal
 
 
