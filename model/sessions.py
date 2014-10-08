@@ -4,7 +4,9 @@ from signalslot.signal import Signal
 import os
 from utils import mkdir_p
 import datetime
-import logging
+from utils import get_logger
+logger = get_logger('model.sessions')
+
 
 class DataThreadMonitor(object):
     '''
@@ -87,7 +89,7 @@ class SessionManager():
         try:
             self.current_session()[monitor_name].accept_data(**args)
         except KeyError:
-            logging.error('Monitor {0} not found'.format(monitor_name))
+            logger.error('Monitor {0} not found'.format(monitor_name))
         
     def save(self, out_dir):
         for session_id, monitors in self.sessions.iteritems():

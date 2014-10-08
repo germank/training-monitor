@@ -8,6 +8,7 @@ This application permits to plot data streamed through the network to monitor th
  * cherrypy
  * wxpython
  * pyyaml
+ * signalslot
 
 ## Usage example
 

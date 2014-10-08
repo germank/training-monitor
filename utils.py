@@ -1,4 +1,5 @@
 import os, errno
+import logging
 
 def mkdir_p(path):
     try:
@@ -7,3 +8,13 @@ def mkdir_p(path):
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else: raise
+        
+def get_logger(name):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    f = logging.FileHandler('monitor.log')
+    f.setLevel(logging.INFO)
+    #stream = logging.StreamHandler()
+    #stream.setLevel(logging.INFO)
+    logger.addHandler(f)
+    return logger
