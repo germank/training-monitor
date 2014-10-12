@@ -27,7 +27,6 @@ class BasePanel(wx.Panel):
         wx.CallAfter(self.do_draw)
         
     def do_draw(self):
-        self.figure.draw()
         self.canvas.draw()
         
     def on_figure_updated(self, figure, **kwargs):
@@ -48,7 +47,6 @@ class BaseMemoryPanel(object):
         self.do_draw()
         
     def do_draw(self):
-        self.figure.draw()
         self.canvas.draw()
         
     def on_figure_updated(self, figure, **kwargs):
@@ -62,7 +60,8 @@ class BaseFigure(object):
     '''
     def __init__(self, **kwargs):
         self.figure_updated = Signal()
-        self.figure = Figure((10,8))
+        self.figure = Figure((1,1))
+        self.axes = self.figure.add_subplot(111)
         
     def accept_data(self, **kwargs):
         '''
@@ -70,3 +69,8 @@ class BaseFigure(object):
         '''
         self.do_accept_data(**kwargs)
         self.figure_updated.emit(figure=self)
+        
+    def clear(self):
+        self.axes.cla()
+        self.axes.draw()
+        self.axes.Refresh()

@@ -26,7 +26,6 @@ class HistogramFigure(BaseFigure):
         BaseFigure.__init__(self)
         #plotted lines
         self.line = {}
-        self.axes = self.figure.add_subplot(111)
         self.bins = kwargs.get('bins', 10)
     
     def do_accept_data(self, **kwargs):
@@ -39,7 +38,8 @@ class HistogramFigure(BaseFigure):
         M = asarray(cells)
         
         self.update_matrix(M)
-
+        self.axes.relim()
+        self.axes.autoscale_view()
     
     def get_figure(self):
         return self.figure
@@ -51,10 +51,6 @@ class HistogramFigure(BaseFigure):
             args['bins'] = self.bins
         self.axes.hist(M, **args)
         
-    def draw(self):
-        self.axes.relim()
-        self.axes.autoscale_view()
-    
     def save(self, output_file):
         self.figure.savefig(output_file)
 

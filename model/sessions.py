@@ -22,13 +22,15 @@ class DataThreadMonitor(object):
     
     def accept_data(self, **kwargs):
         self.figure.accept_data(**kwargs)
-        self.figure.draw()
         
     def save(self, outfile):
         self.figure.save(outfile)
         
     def ghost_clone(self, other):
         self.figure.ghost_clone(other.figure)
+        
+    def clear(self):
+        self.figure.clear()
 
 
 class SessionManager():
@@ -58,13 +60,23 @@ class SessionManager():
                                                    date=datetime.datetime.now().strftime("%Y-%m-%d"),
                                                    time=datetime.datetime.now().strftime("%H:%M"))
         self.sessions[session_id] = {} 
-        for monitor_name, data_cfg in self.cfg['elements'].iteritems():
-                self.sessions[session_id][monitor_name] = DataThreadMonitor(data_cfg) 
+        new_session = {}
+        if 'tabs' in self.cfg['elements']:
+            for tab_name, elements in self.cfg['elements']['tabs'].iteritems():
+                new_session[tab_name] = {}
+                for monitor_name, data_cfg in elements.iteritems():
+                    self.sessions[session_id][monitor_name] = DataThreadMonitor(data_cfg)
+                    new_session[tab_name][monitor_name] = self.sessions[session_id][monitor_name]
+        else:
+            new_session['default'] = {}
+            for monitor_name, data_cfg in self.cfg['elements'].iteritems():
+                self.sessions[session_id][monitor_name] = DataThreadMonitor(data_cfg)
+                new_session['default'][monitor_name] = self.sessions[session_id][monitor_name]
         
         #pub.sendMessage("SESSION NEW", (session_id, 
         #                                self.get_session_monitors(session_id)))
         self.session_new.emit(session_id=session_id,
-                              session_monitors=self.get_session_monitors(session_id))
+                              session_monitors=new_session)
         
         return session_id
     
@@ -87,6 +99,7 @@ class SessionManager():
     
     def on_data_arrived(self, monitor_name, args, **kwargs):
         try:
+            print monitor_name
             self.current_session()[monitor_name].accept_data(**args)
         except KeyError:
             logger.error('Monitor {0} not found'.format(monitor_name))
@@ -97,3 +110,9 @@ class SessionManager():
                 mkdir_p(session_out_dir)
                 for monitor_name, monitor in monitors.iteritems():
                     monitor.save(os.path.join(session_out_dir, monitor_name+'.png'))
+    
+    def clear(self):
+        for monitor_name, monitor in self.current_session().iteritems():
+            monitor.clear()
+    
+    
