@@ -1,7 +1,8 @@
 #from wx.lib.pubsub import Publisher as pub
 from numpy.lib.function_base import append
-from numpy import asarray
+from numpy import asarray, arange
 from visualizers.Base import BasePanel, BaseFigure, BaseMemoryPanel
+import matplotlib
 
 class HistogramPanel(BasePanel):
     '''
@@ -26,7 +27,10 @@ class HistogramFigure(BaseFigure):
         BaseFigure.__init__(self)
         #plotted lines
         self.line = {}
-        self.bins = kwargs.get('bins', 10)
+        self.bins = kwargs.get('bins', None)
+        self.range = kwargs.get('range', None)
+        self.binwidth = kwargs.get('binwidth', None)
+        
     
     def do_accept_data(self, **kwargs):
         '''
@@ -36,10 +40,11 @@ class HistogramFigure(BaseFigure):
         '''
         cells = map(float, kwargs['cells'].split(','))
         M = asarray(cells)
-        
+        print "Histogram data"
+        print repr(M)
         self.update_matrix(M)
-        self.axes.relim()
-        self.axes.autoscale_view()
+        #self.axes.relim()
+        #self.axes.autoscale_view()
     
     def get_figure(self):
         return self.figure
@@ -49,7 +54,11 @@ class HistogramFigure(BaseFigure):
         args = {}
         if self.bins:
             args['bins'] = self.bins
-        self.axes.hist(M, **args)
+        if self.range and self.binwidth:
+            args['bins'] = arange(self.range[0], self.range[1] + self.binwidth, self.binwidth)
+        self.axes.hist(M, rwidth=1)
+        self.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+        self.axes.get_yaxis().get_major_formatter().set_useOffset(False)
         
     def save(self, output_file):
         self.figure.savefig(output_file)

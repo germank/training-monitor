@@ -4,7 +4,51 @@ from numpy.lib.function_base import append
 from numpy import asarray
 from visualizers.Base import BasePanel, BaseFigure, BaseMemoryPanel
 
-class HeatmapPanel(BasePanel):
+
+import numpy as N
+import pylab as P
+
+def _blob(x,y,area,colour):
+    """
+    Draws a square-shaped blob with the given area (< 1) at
+    the given coordinates.
+    """
+    hs = N.sqrt(area) / 2
+    xcorners = N.array([x - hs, x + hs, x + hs, x - hs])
+    ycorners = N.array([y - hs, y - hs, y + hs, y + hs])
+    P.fill(xcorners, ycorners, colour, edgecolor=colour)
+
+def hinton(W, maxWeight=None):
+    """
+    Draws a Hinton diagram for visualizing a weight matrix. 
+    Temporarily disables matplotlib interactive mode if it is on, 
+    otherwise this takes forever.
+    """
+    reenable = False
+    if P.isinteractive():
+        P.ioff()
+    P.clf()
+    height, width = W.shape
+    if not maxWeight:
+        maxWeight = 2**N.ceil(N.log(N.max(N.abs(W)))/N.log(2))
+
+    P.fill(N.array([0,width,width,0]),N.array([0,0,height,height]),'gray')
+    P.axis('off')
+    P.axis('equal')
+    for x in xrange(width):
+        for y in xrange(height):
+            _x = x+1
+            _y = y+1
+            w = W[y,x]
+            if w > 0:
+                _blob(_x - 0.5, height - _y + 0.5, min(1,w/maxWeight),'white')
+            elif w < 0:
+                _blob(_x - 0.5, height - _y + 0.5, min(1,-w/maxWeight),'black')
+    if reenable:
+        P.ion()
+    P.show()
+
+class HintonPanel(BasePanel):
     '''
     A Panel with a line plot in it
     '''
@@ -12,14 +56,14 @@ class HeatmapPanel(BasePanel):
         BasePanel.__init__(self, parent, figure)
         
 
-class HeatmapMemoryPanel(BaseMemoryPanel):
+class HintonMemoryPanel(BaseMemoryPanel):
     '''
     A Panel with a line plot in it
     '''
     def __init__(self, figure, **kwargs):
         BaseMemoryPanel.__init__(self, figure)
         
-class HeatmapFigure(BaseFigure):
+class HintonFigure(BaseFigure):
     '''
     A Panel with a line plot in it
     '''
@@ -30,6 +74,7 @@ class HeatmapFigure(BaseFigure):
         self.colorbar = None
         self.image = None
         self.range = kwargs.get('range', None)
+        
     
     def do_accept_data(self, **kwargs):
         '''

@@ -1,4 +1,5 @@
 #from wx.lib.pubsub import Publisher as pub
+import wx
 from numpy.lib.function_base import append
 from visualizers.Base import BasePanel, BaseFigure, BaseMemoryPanel
 
@@ -8,6 +9,35 @@ class LinePlotPanel(BasePanel):
     '''
     def __init__(self, parent, figure, **kwargs):
         BasePanel.__init__(self, parent, figure)
+        
+    
+         # create a long tooltip with newline to get around wx bug (in v2.6.3.3)
+        # where newlines aren't recognized on subsequent self.tooltip.SetTip() calls
+#        self.tooltip = wx.ToolTip(tip='tip with a long %s line and a newline\n' % (' '*100))
+#        self.SetToolTip(None)
+#        self.tooltip.Enable(False)
+#        self.tooltip.SetDelay(0)
+#        self.canvas.mpl_connect('motion_notify_event', self.onMotion)
+#    
+#    def onMotion(self, event):
+#        collisionFound = False
+#        if event.xdata != None and event.ydata != None: # mouse is inside the axes
+#            for z, line in self.figure.line.iteritems():
+#                xdata = line.get_xdata()
+#                ydata = line.get_ydata()
+#                for x,y in zip(xdata,ydata):
+#                    radius = 0.01
+#                    if abs(event.xdata - x) < radius and abs(event.ydata - y) < radius:
+#                        if not self.GetToolTip():
+#                            tip='x=%f;y=%f' % (event.xdata, event.ydata)
+#                            self.tooltip.SetTip(tip) 
+#                            self.tooltip.Enable(True)
+#                            self.SetToolTip(self.tooltip)
+#                            collisionFound = True
+#                            break
+#        if not collisionFound:
+#            self.tooltip.Enable(False)
+#            self.SetToolTip(None)
         
 
 class LinePlotMemoryPanel(BaseMemoryPanel):
