@@ -15,6 +15,10 @@ class SessionPanel(wx.Panel):
         tab_panel = TabPanel(self.tabs)
         self.tabs.AddPage(tab_panel, tabname)
         return tab_panel
+    
+    def on_close(self, event):
+            for i in range(self.tabs.GetPageCount()):
+                self.tabs.GetPage(i).on_close(event)
         
 
 class TabPanel(wx.Panel):
@@ -26,11 +30,15 @@ class TabPanel(wx.Panel):
         panel_factory = FigurePanelFactory()
         #Create the Panel 
         p = panel_factory.build(self, monitor_figure, monitor_cfg)
+        self.panel = p
         #Define the panel label
         s = wx.StaticText(self,-1,monitor_cfg.get('label', default_name))
         self.sizer.Add(s, 0)
         self.sizer.Add(p, 1, wx.LEFT | wx.TOP | wx.GROW| wx.EXPAND)
-        self.SetSizer(self.sizer)          
+        self.SetSizer(self.sizer)
+    
+    def on_close(self, event):
+        self.panel.on_close(event)          
         
 class MainFrame(wx.Frame):
     def __init__(self, app):
@@ -64,6 +72,9 @@ class MainFrame(wx.Frame):
         toolbar.Realize()
         self.toolbar = toolbar
         
+        #trigger destruction sequences on the panels
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+        
         self.session_listbook = wx.Listbook(self.main_panel)
         
         il = wx.ImageList(16,16)
@@ -75,8 +86,12 @@ class MainFrame(wx.Frame):
         
         
         self.main_panel.SetSizerAndFit(self.main_panel.sizer)
-        
-        
+
+    def on_close(self, event):
+        for i in range(self.session_listbook.GetPageCount()):
+            self.session_listbook.GetPage(i).on_close(event)
+        event.Skip()
+            
     def get_selection(self):
         return self.session_listbook.GetSelection()
     
@@ -88,7 +103,7 @@ class MainFrame(wx.Frame):
     
     def new_session_panel(self, text):
         panel = SessionPanel(self.main_panel)
-        self.session_listbook.AddPage(panel, text, imageId=0)
+        self.session_listbook.AddPage(panel, text, select=True, imageId=0)
         page_id = self.session_listbook.GetPageCount()-1
         return panel, page_id
     

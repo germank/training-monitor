@@ -1,5 +1,6 @@
 #from wx.lib.pubsub import Publisher as pub
 import wx
+from numpy import mean
 from numpy.lib.function_base import append
 from visualizers.Base import BasePanel, BaseFigure, BaseMemoryPanel
 
@@ -61,6 +62,8 @@ class LinePlotFigure(BaseFigure):
         self.ls = kwargs.get('ls', kwargs.get('linestyle', "-"))
         self.marker = kwargs.get('marker', None)
         self.grid = kwargs.get('grid', False)
+        self.smoothing = kwargs.get('smoothing', 1)
+        self.moving_history = []
         if self.grid:
                 self.axes.grid()
     
@@ -82,6 +85,10 @@ class LinePlotFigure(BaseFigure):
 
     def add_point(self, y, x=None, z=1):
         y = float(y)
+        self.moving_history.append(y)
+        self.moving_history = self.moving_history[-self.smoothing:]
+        print(self.moving_history)
+        y = mean(self.moving_history)
         print y
         if not x:
             if z in self.line:

@@ -4,6 +4,32 @@ from signalslot.signal import Signal
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg #as FigureCanvas
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from threading import Thread
+import time
+
+
+class Metronome(Thread):
+    def __init__(self):
+        super(Metronome, self).__init__()
+        self.to_call = None
+        self.stopf = False
+        
+    def call(self, to_call):
+        assert to_call is not None
+        self.to_call = to_call
+    
+    def run(self):
+        while not self.stopf:
+            if self.to_call:
+                self.to_call()
+            time.sleep(1)
+
+    
+    def stop(self):
+        self.stopf = True 
+    
+    
+            
 
 
 class BasePanel(wx.Panel):
@@ -19,12 +45,20 @@ class BasePanel(wx.Panel):
         self.sizer.Add(self.canvas, 1, wx.ALL | wx.EXPAND)
         self.SetSizerAndFit(self.sizer)
         self.Fit()
+        self.metronome = Metronome()
+        self.metronome.start() 
         
         self.figure.figure_updated.connect(self.on_figure_updated)
     
+    def on_close(self, event):
+        self.metronome.stop()
+        self.metronome.join()
+        
     def draw(self):
-        #forwards the call to the GUI thread
-        wx.CallAfter(self.do_draw)
+        def on_tick():
+            #forwards the call to the GUI thread
+            wx.CallAfter(self.do_draw)
+        self.metronome.call(on_tick)
         
     def do_draw(self):
         self.canvas.draw()
